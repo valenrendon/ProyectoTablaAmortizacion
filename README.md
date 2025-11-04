@@ -1,211 +1,227 @@
-# 📘 Proyecto Final – Aplicativo de Tabla de Amortización en Python
+# Tabla de Amortización – Método Francés  
+**Trabajo Final – Ingeniería Financiera (UPB, 2025-2)**
+
+**Integrantes**
+- Juan José Molina Zapata  
+- Valentina Rendón Claro
 
 ---
 
-## 🏁 **1. Introducción**
+## 📌 Descripción
 
-El presente proyecto tiene como propósito desarrollar un **aplicativo en Python** capaz de generar una **tabla de amortización completa y dinámica**, que permita visualizar el comportamiento del crédito a lo largo del tiempo, considerando tasas nominales o efectivas, distintas frecuencias de pago y la inclusión de **abonos programados y extraordinarios**.
+Herramienta en **Python** para generar tablas de amortización por **método francés** con **conversión completa de tasas**:
 
-Este trabajo integra los conocimientos de **matemática financiera** con herramientas de programación, demostrando la capacidad para **traducir modelos financieros en código funcional**, optimizado y comprensible.
+- **Nominal ↔ Efectiva**
+- **Vencida ↔ Anticipada** (se normaliza a vencida para el cálculo)
+- **Cualquier capitalización**: `diaria, semanal, quincenal, mensual, bimestral, trimestral, semestral, anual`
+- **Base de días**: `360` o `365` *(aplica únicamente a la tasa diaria)*
 
----
+Admite **abonos extraordinarios**:
 
-## 🎯 **2. Objetivos**
+- `tipo="plazo"` → **mantiene la cuota** y **reduce el número de cuotas**.  
+- `tipo="cuota"` → **mantiene el plazo** y **recalcula la cuota** desde el periodo del abono.
 
-### ✅ **Objetivo General**
-Desarrollar un aplicativo en Python que permita generar y gestionar una **tabla de amortización completa**, aplicando correctamente las fórmulas financieras vistas en clase y posibilitando el registro de abonos programados o extraordinarios.
-
-### 📌 **Objetivos Específicos**
-- Implementar un algoritmo que calcule la **tasa equivalente** según la frecuencia de pago.  
-- Generar automáticamente la **tabla de amortización** según los parámetros ingresados.  
-- Permitir el registro de **abonos programados y no programados**, recalculando el saldo y el plazo.  
-- Exportar los resultados a formatos **CSV o Excel**.  
-- Mostrar la información de manera clara y estructurada, con enfoque didáctico.
+Incluye **exportación a CSV/Excel**, **anclaje a fin de mes** y **pruebas automáticas**.
 
 ---
 
-## 📖 **3. Marco Teórico**
+## ✅ Cómo se alinea con la rúbrica
 
-### 💡 Concepto de Amortización
-La amortización es el proceso mediante el cual se **paga una deuda** mediante cuotas periódicas que cubren capital e intereses.  
-Cada cuota incluye:
-- **Interés:** pago por el uso del dinero prestado.
-- **Amortización:** parte que reduce el capital pendiente.
+1. **Exactitud financiera (30%)**  
+   Conversión de tasas (nominal/efectiva, anticipada/vencida, capitalización, base 360/365); la tabla cierra con saldo final ≈ 0 (ajuste ≤ 0.1% del principal). Se imprime **tasa por periodo objetivo** y **EA equivalente**.
 
-### 🔢 Fórmulas Financieras Aplicadas
+2. **Funcionalidad: método y abonos (25%)**  
+   Método francés estable; abonos `plazo` (acorta) y `cuota` (recalcula) consistentes y reproducibles.
 
-1. **Cálculo de la cuota periódica (sistema francés):**  
-   \[
-   C = P \times \frac{i(1+i)^n}{(1+i)^n - 1}
-   \]
-   Donde:  
-   \( C \): Cuota  
-   \( P \): Monto del préstamo  
-   \( i \): Tasa periódica  
-   \( n \): Número de periodos
+3. **Entradas y uso (15%)**  
+   CLI clara: **monto**, **tasa** (valor, tipo, capitalización, vencimiento, base), **plazo** (por `--n_periodos` o `--duracion + --duracion_unidad`), **frecuencia de pago**, **fecha inicio**. Validaciones de cortesía y exportes CSV/XLSX.
 
-2. **Cálculo de intereses y amortización:**
-   \[
-   I_t = S_{t-1} \times i
-   \]
-   \[
-   A_t = C - I_t
-   \]
-   \[
-   S_t = S_{t-1} - A_t
-   \]
+4. **Código en Python (15%)**  
+   Diseño modular y legible: `amort/rates.py` (tasas), `amort/schedule.py` (francés, abonos, fechas), `amort/utils.py` (export e helpers), `cli.py` (interfaz), `app.py` (modo interactivo).
 
-3. **Conversión de tasas:**
-   - De **nominal anual a periódica vencida**:
-     \[
-     i = \frac{i_{nominal}}{m}
-     \]
-   - De **efectiva anual a periódica**:
-     \[
-     i = (1 + i_{ea})^{1/m} - 1
-     \]
+5. **Pruebas y README (15%)**  
+   Suite `pytest` con **17 pruebas** (conversión EA→mensual, efectiva mensual, nominal cap. mensual, anticipada→vencida, base 360/365, fin de mes desde 31/ene, tasa 0%, abonos `plazo`/`cuota`, cierre de tabla). Este README documenta uso, fórmulas y supuestos.
 
 ---
 
-## ⚙️ **4. Metodología de Desarrollo**
+## 🧱 Estructura del repositorio
 
-El aplicativo fue desarrollado en **Python**, empleando librerías de manejo de datos como `pandas` y `openpyxl`.  
-El proceso de desarrollo se dividió en etapas:
-
-1. **Diseño lógico:** definición de las fórmulas financieras y del flujo del programa.  
-2. **Codificación modular:** creación de funciones separadas para cálculos, abonos y utilidades.  
-3. **Pruebas de validación:** comprobación del cálculo de cuotas y saldos.  
-4. **Exportación de resultados:** generación de archivos CSV y Excel.  
-5. **Documentación y validación final.**
-
----
-
-## 🧩 **5. Estructura del Proyecto**
-
+```text
 ProyectoTablaAmortizacion/
-│
-├── main.py # Programa principal (interfaz de usuario)
-├── calculos.py # Funciones de cálculo financiero
-├── abonos.py # Gestión de abonos programados y extraordinarios
-├── utils.py # Funciones auxiliares (exportación y validaciones)
-├── requirements.txt # Librerías requeridas
-├── README.md # Documentación del proyecto
-│
-└── resultados/ # Archivos exportados (CSV o Excel)
-
-
----
-
-## 💻 **6. Tecnologías Utilizadas**
-
-- **Lenguaje:** Python 3.10+
-- **Librerías:**  
-  - `pandas` – Manejo y estructuración de datos  
-  - `openpyxl` – Exportación a Excel  
-- **Entorno de desarrollo:** Visual Studio Code  
-- **Control de entorno:** `venv` (entorno virtual de Python)
+├── amort/
+│   ├── __init__.py
+│   ├── rates.py          # Conversión de tasas (RateSpec, _ppya, tasa_periodica_normalizada, ...)
+│   ├── schedule.py       # Método francés, fechas (fin de mes), abonos
+│   └── utils.py          # Export a CSV/Excel, helpers
+├── cli.py                # Interfaz de línea de comandos (uso principal)
+├── app.py                # Modo interactivo por consola
+├── tests/                # Pruebas con pytest
+│   ├── test_rates.py
+│   ├── test_schedule.py
+│   ├── test_cli_smoke.py
+│   └── test_core.py
+├── requirements.txt
+└── README.md
+```
 
 ---
 
-## 🧮 **7. Descripción del Funcionamiento**
+## ⚙️ Instalación
 
-### Entrada de datos:
-El usuario ingresa:
-- Monto del préstamo  
-- Tasa anual (%)
-- Tipo de tasa (nominal o efectiva)
-- Plazo (en años)
-- Frecuencia de pago (mensual, trimestral, etc.)
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-### Proceso:
-1. Se convierte la tasa a su **valor equivalente por periodo**.  
-2. Se calcula la **cuota periódica** usando el sistema francés.  
-3. Se genera una tabla con los valores de **cuota, interés, amortización y saldo** para cada periodo.  
-4. Si existen abonos, el sistema recalcula el saldo y ajusta el plazo o la cuota.  
-
-### Salida:
-- Visualización del resumen en consola.  
-- Exportación del resultado completo a un archivo `tabla_amortizacion.csv`.
+> Requisito: **Python 3.9+**
 
 ---
 
-## 📈 **8. Ejemplo de Resultados**
+## 🖥️ Uso
 
-| Periodo | Cuota  | Interés | Amortización | Saldo |
-|----------|--------|---------|---------------|--------|
-| 1 | 888.49 | 100.00 | 788.49 | 9,211.51 |
-| 2 | 888.49 | 92.12 | 796.37 | 8,415.14 |
-| ... | ... | ... | ... | ... |
-| 12 | 888.49 | 8.85 | 879.64 | 0 |
+### 1) CLI (recomendado)
 
-Archivo generado: `tabla_amortizacion.csv`
+**Parámetros clave de la tasa (tasa de referencia que el usuario conoce):**
+- `--tasa_valor` : porcentaje (ej. `24.33`)
+- `--tasa_tipo`  : `nominal` | `efectiva`
+- `--tasa_cap`   : capitalización de esa tasa (`diaria|semanal|quincenal|mensual|bimestral|trimestral|semestral|anual`)
+- `--tasa_venc`  : `vencida` | `anticipada`
+- `--base_dias`  : `360` | `365` *(solo afecta si `tasa_cap=diaria`)*
 
----
+**Plazo:**
+- O **número de cuotas**: `--n_periodos N`
+- O **duración + unidad**: `--duracion X --duracion_unidad {dias,semanas,quincenas,meses,bimestres,trimestres,semestres,anios}`  
+  *(se convierte a `N` coherente con la **frecuencia de pago**)*
 
-## 💵 **9. Manejo de Abonos**
+**Frecuencia de pago (objetivo):**
+- `--frecuencia {diaria,semanal,quincenal,mensual,bimestral,trimestral,semestral,anual}`
 
-El programa permite dos tipos de abonos:
+**Otros:**
+- `--fecha_inicio DD/MM/YYYY` *(opcional; activa fechas y fin de mes si inicia el 31)*  
+- `--abonos_json '[{"periodo":6,"monto":1000000,"tipo":"plazo"}]'` *(tipo ∈ {"plazo","cuota"})*  
+- `--export_csv salida.csv` | `--export_xlsx salida.xlsx`  
+- `--preview N` *(muestra N filas)*  
+- `--miles` *(formato amigable en consola; no afecta cálculos ni exportes)*
 
-1. **Programados:** ingresados desde el inicio (por ejemplo, cada seis meses).  
-2. **Extraordinarios:** ingresados manualmente durante la ejecución.  
-
-Cada abono puede aplicarse de dos maneras:
-- Reduciendo el **plazo** del crédito.  
-- Reduciendo el **valor de la cuota**.
-
----
-
-## 🧠 **10. Resultados y Análisis**
-
-El aplicativo demuestra:
-- Correcta aplicación de fórmulas financieras.  
-- Precisión en los cálculos de tasas equivalentes y cuotas.  
-- Modularidad en el diseño del código.  
-- Capacidad de recalcular automáticamente la tabla ante abonos.  
-- Facilidad de uso y claridad en los resultados exportados.
+### 2) Modo interactivo
+```bash
+python app.py
+```
 
 ---
 
-## 🧾 **11. Conclusiones**
+## 🔁 Ejemplos reproducibles
 
-- Se logró implementar una herramienta funcional que automatiza el cálculo de tablas de amortización.  
-- El proyecto integra de forma efectiva la teoría financiera con la práctica computacional.  
-- La estructura modular del código permite su fácil mantenimiento y mejora futura.  
-- El uso de librerías como `pandas` mejora la manipulación y presentación de datos.
+**1. EA 24.33% anual → pagos mensuales (N=24)**
+```bash
+python cli.py --monto 7000000 --tasa_valor 24.33 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia mensual --n_periodos 24   --fecha_inicio 01/01/2025 --miles
+```
+
+**2. Efectiva 1.74% mensual (duración 24 meses)**
+```bash
+python cli.py --monto 7000000 --tasa_valor 1.74 --tasa_tipo efectiva --tasa_cap mensual   --tasa_venc vencida --frecuencia mensual   --duracion 24 --duracion_unidad meses   --fecha_inicio 15/10/2025 --miles
+```
+
+**3. Nominal 24% cap. mensual (≈2%/mes), plazo 2 trimestres**
+```bash
+python cli.py --monto 7000000 --tasa_valor 24 --tasa_tipo nominal --tasa_cap mensual   --tasa_venc vencida --frecuencia mensual   --duracion 2 --duracion_unidad trimestres   --fecha_inicio 01/01/2025 --miles
+```
+
+**4. Efectiva 2% mensual ANTICIPADA (normalizada a vencida)**
+```bash
+python cli.py --monto 3000000 --tasa_valor 2 --tasa_tipo efectiva --tasa_cap mensual   --tasa_venc anticipada --frecuencia mensual --n_periodos 12   --fecha_inicio 01/02/2025 --miles
+```
+
+**5. Abono que reduce plazo (mantiene cuota)**
+```bash
+python cli.py --monto 5000000 --tasa_valor 24 --tasa_tipo nominal --tasa_cap mensual   --tasa_venc vencida --frecuencia mensual --n_periodos 24   --fecha_inicio 01/01/2025   --abonos_json '[{"periodo":6,"monto":1800000,"tipo":"plazo"}]'
+```
+
+**6. Abono que recalcula cuota (mantiene plazo)**
+```bash
+python cli.py --monto 7000000 --tasa_valor 24.33 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia mensual --n_periodos 24   --fecha_inicio 01/01/2025   --abonos_json '[{"periodo":6,"monto":1000000,"tipo":"cuota"}]'
+```
+
+**7. Fin de mes anclado (desde 31/01/2025)**
+```bash
+python cli.py --monto 1000000 --tasa_valor 18 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia mensual --n_periodos 6   --fecha_inicio 31/01/2025 --preview 6
+```
+
+**8. Diaria: base 360 vs 365 (EA=20%)**
+```bash
+# base 360
+python cli.py --monto 1000000 --tasa_valor 20 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia diaria --n_periodos 30 --base_dias 360
+
+# base 365
+python cli.py --monto 1000000 --tasa_valor 20 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia diaria --n_periodos 30 --base_dias 365
+```
+
+**9. Tasa 0% (cuotas iguales, sin intereses)**
+```bash
+python cli.py --monto 900000 --tasa_valor 0 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia mensual --n_periodos 9   --fecha_inicio 01/10/2025 --miles
+```
 
 ---
 
-## 📚 **12. Bibliografía y Fuentes**
+## 🧮 Fórmulas clave (resumen)
 
-- Gitman, L. J. *Principios de Administración Financiera*.  
-- Ross, Westerfield y Jordan. *Fundamentos de Finanzas Corporativas*.  
-- Apuntes del curso de Matemática Financiera.  
-- Documentación oficial de Python y Pandas.
+Sea `ppya(periodo)` el número de pagos por año:  
+`diaria=base_dias`, `semanal=52`, `quincenal=24`, `mensual=12`, `bimestral=6`, `trimestral=4`, `semestral=2`, `anual=1`.
+
+**1) Nominal anual j con capitalización p_ref → periódica ref (vencida)**  
+`i_ref = (j/100) / p_ref`  
+Si venía **anticipada**: `i_ref = i_ref / (1 - i_ref)`.
+
+**2) Efectiva periódica ref (valor en %) → i_ref (vencida)**  
+`i_ref = valor/100`  
+Si **anticipada**: `i_ref = i_ref / (1 - i_ref)`.
+
+**3) Periódica ref → Efectiva Anual (EA)**  
+`i_EA = (1 + i_ref)^{p_ref} - 1`.
+
+**4) EA → Periódica objetivo (frecuencia de pago p_obj, vencida)**  
+`i_obj = (1 + i_EA)^{1/p_obj} - 1`.
+
+**Método francés (cuota vencida)**  
+`A = P · [ i (1+i)^n / ((1+i)^n − 1) ]`  *(si `i=0` entonces `A = P/n`)*  
+`Interés_t = Saldo_{t-1} · i`  
+`Amortización_t = A − Interés_t`  
+*Ajuste final:* se corrige residuo de redondeo en la última fila.
+
+**Abonos**  
+- `plazo`: descuenta del saldo, **mantiene A**, **reduce N**.  
+- `cuota`: descuenta del saldo, **recalcula A** para los periodos restantes (mismo `N` total).
 
 ---
 
-## 👩‍💻 **13. Datos del Proyecto**
+## 📅 Fechas y fin de mes
 
-**Estudiante:** Valentina Rendón  
-**Asignatura:** Matemática Financiera  
-**Docente:** [Nombre del profesor(a)]  
-**Institución:** [Nombre de tu universidad o instituto]  
-**Periodo:** 2025 – II  
+- Si `--fecha_inicio` es **31**, los pagos mensuales se **anclan a fin de mes** (28/29/30/31 según corresponda).  
+- Otras frecuencias suman su intervalo natural (7, 15 días, etc.).  
+- Sin fecha, la columna `Fecha` puede ser `None`.
 
 ---
 
-## 🏅 **14. Rúbrica de Evaluación (cumplimiento total)**
+## 🔒 Validaciones y supuestos
 
-| Criterio Evaluado | Descripción | Nivel de Logro |
-|--------------------|-------------|----------------|
-| **Conceptos Financieros** | Aplica correctamente las fórmulas de amortización, tasas equivalentes y abonos. | ✅ Excelente |
-| **Desarrollo Técnico** | Código estructurado, modular, con uso adecuado de librerías y documentación. | ✅ Excelente |
-| **Exactitud de Cálculos** | Resultados comprobables y precisos. | ✅ Excelente |
-| **Interfaz y Funcionalidad** | Interfaz clara, funcional, con exportación automática. | ✅ Excelente |
-| **Creatividad / Innovación** | Manejo de abonos y recalculación automática de la tabla. | ✅ Excelente |
-| **Presentación y Documentación** | README completo, bien estructurado y con referencias. | ✅ Excelente |
+- `monto > 0`, `tasa_valor ≥ 0`, `n_periodos ≥ 1`.  
+- Abonos con `periodo ≥ 1`, `monto ≥ 0`, `tipo ∈ {"plazo","cuota"}`.  
+- La **base 360/365** solo afecta **tasa diaria**.  
+- Los exportes no alteran el cálculo (solo salida de datos).
 
 ---
 
-> ✨ *Proyecto desarrollado como evidencia de comprensión y aplicación de conceptos financieros en entornos computacionales, promoviendo el pensamiento lógico, analítico y práctico en el campo de las finanzas y la programación.*
+## 🧪 Pruebas
 
+```bash
+pytest -q
+```
+Resultado esperado del repo: **17 passed**.  
+Cobertura: conversiones (incluye anticipada→vencida), base 360/365, fin de mes, tasa 0%, abonos `plazo` y `cuota`, cierre a saldo ≈ 0.
+
+---
+
+## 📝 Licencia / uso
+
+Uso académico para el **Trabajo Final de Ingeniería Financiera (UPB, 2025-2)**.

@@ -1,0 +1,28 @@
+# Entorno/bytecode
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.egg-info/
+dist/
+build/
+.python-version
+
+# macOS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Herramientas y pruebas
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Salidas del aplicativo
+tabla.csv
+tabla.xlsx
+
+# Notebooks (si los usas)
+.ipynb_checkpoints/
