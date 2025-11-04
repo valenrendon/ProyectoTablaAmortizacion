@@ -1,6 +1,4 @@
-
-# amort/rates.py
-# Conversión de tasas: nominal ↔ efectiva, anticipada ↔ vencida, y equivalencias entre frecuencias.
+# Conversión de tasas: nominal a efectiva, anticipada a vencida, y equivalencias entre frecuencias.
 from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Dict
@@ -52,29 +50,28 @@ def effective_equivalent(i_eff_ref: float, p_ref: float, p_target: float) -> flo
     i_eff_anual = (1.0 + i_eff_ref) ** p_ref - 1.0
     return (1.0 + i_eff_anual) ** (1.0 / p_target) - 1.0
 
-def anticipada_a_vencida(i: float) -> float:
-    """Convierte tasa anticipada por periodo a vencida por el mismo periodo."""
-    return i / (1.0 - i)
+def _a_vencida(i: float, vencimiento: str) -> float:
+    """Convierte tasa del mismo periodo: anticipada -> vencida; si ya es vencida, la deja igual."""
+    return i / (1.0 - i) if vencimiento == "anticipada" else i
 
-def vencida_a_anticipada(i: float) -> float:
-    """Convierte tasa vencida por periodo a anticipada por el mismo periodo."""
-    return i / (1.0 + i)
-
-def tasa_periodica_normalizada(tasa: RateSpec, freq_pago: Freq) -> float:
+def tasa_periodica_normalizada(rs: RateSpec, periodo_objetivo: str) -> float:
     """
-    Retorna la tasa efectiva por periodo de pago (vencida), equivalente a la especificación dada.
-    Si el dato de entrada era anticipado, se convierte a vencida para el mismo periodo.
+    Convierte la tasa de 'rs' al periodo de pago objetivo (siempre vencida):
+    - Soporta nominal (j) y efectiva, y tasas anticipadas/vencidas.
+    - Respeta la base de días para periodos 'diaria'.
     """
-    p_target = _ppya(freq_pago, tasa.base_dias)
-    if tasa.tipo == "nominal":
-        m_comp = _ppya(tasa.capitalizacion, tasa.base_dias)
-        i_v = nominal_to_effective_periodic(tasa.as_decimal(), m_comp, p_target)
-    else:
-        p_ref = _ppya(tasa.capitalizacion, tasa.base_dias)
-        i_v = effective_equivalent(tasa.as_decimal(), p_ref, p_target)
+    p_ref = _ppya(rs.capitalizacion, rs.base_dias)         # pagos/año de la tasa de entrada
+    p_obj = _ppya(periodo_objetivo, rs.base_dias)          # pagos/año del periodo objetivo
 
-    if tasa.vencimiento == "anticipada":
-        # construir la tasa anticipada equivalente del mismo periodo y normalizar a vencida
-        i_a = vencida_a_anticipada(i_v)
-        i_v = anticipada_a_vencida(i_a)
-    return i_v
+    if rs.tipo == "nominal":
+        # j nominal anual -> i_ref (por periodo de capitalización), luego a vencida
+        j = rs.valor / 100.0
+        i_ref = _a_vencida(j / p_ref, rs.vencimiento)      # periodic_ref (vencida)
+        i_ea  = (1.0 + i_ref) ** p_ref - 1.0               # a efectiva anual
+    else:  # efectiva
+        # rs.valor ya es efectiva del periodo de capitalización -> a vencida y a EA
+        i_ref = _a_vencida(rs.valor / 100.0, rs.vencimiento)
+        i_ea  = (1.0 + i_ref) ** p_ref - 1.0
+
+    # EA -> periódica objetivo (vencida)
+    return (1.0 + i_ea) ** (1.0 / p_obj) - 1.0

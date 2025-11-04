@@ -1,183 +1,227 @@
-# 📘 Aplicativo de Tabla de Amortización (método francés)
+# Tabla de Amortización – Método Francés  
+**Trabajo Final – Ingeniería Financiera (UPB, 2025-2)**
 
-**Autores:** Valentina Rendón Claro · Juan José Molina Zapata  
-**Curso/Proyecto:** Aplicativo de Tabla de Amortización en Python
-
-Este proyecto genera una **tabla de amortización completa** (método francés, pagos vencidos) con:
-
-- Conversión de tasas **nominal/efectiva** y **anticipada/vencida** en múltiples frecuencias: `diaria`, `semanal`, `quincenal`, `mensual`, `bimestral`, `trimestral`, `semestral`, `anual`.
-- Cálculo correcto de la **tasa equivalente al periodo de pago** (normalizada a **vencida**).
-- **Abonos extraordinarios** (programados o ad-hoc) con dos modalidades de recálculo:
-  1) **Reducir plazo** (mantiene la cuota).  
-  2) **Recalcular cuota** (mantiene el plazo restante).
-- **Interfaz CLI** (flags) y **modo interactivo** tipo formulario en consola.
-- **Exportación** a CSV/Excel.
-- **Pruebas** que validan conversiones, cierre de tabla y abonos.
+**Integrantes**
+- Juan José Molina Zapata  
+- Valentina Rendón Claro
 
 ---
 
-## ✅ Cobertura de la rúbrica
+## 📌 Descripción
 
-**1) Exactitud financiera (30%)**  
-- Conversión explícita **nominal↔efectiva** y **anticipada↔vencida** para **todas las frecuencias**.  
-- La tabla cierra con **saldo final = 0.00** (se fuerza a 0 si |saldo| < 0.01).  
-- Validación de **cuota que amortiza** (error si amortización ≤ 0).  
-- Impresión de **tasa por periodo** y **EA equivalente**.
+Herramienta en **Python** para generar tablas de amortización por **método francés** con **conversión completa de tasas**:
 
-**2) Funcionalidad: método y abonos (25%)**  
-- Método **francés** operativo.  
-- **Abonos** por periodo `N`, con recálculo de **plazo** o de **cuota**.
+- **Nominal ↔ Efectiva**
+- **Vencida ↔ Anticipada** (se normaliza a vencida para el cálculo)
+- **Cualquier capitalización**: `diaria, semanal, quincenal, mensual, bimestral, trimestral, semestral, anual`
+- **Base de días**: `360` o `365` *(aplica únicamente a la tasa diaria)*
 
-**3) Entradas y uso (UI/CLI) (15%)**  
-- Entradas claras: **monto**, **tasa** (valor/tipo/capitalización/vencimiento/base), **frecuencia de pago**, **plazo por N cuotas** o **duración+unidad**, **fecha de inicio**, **abonos**.  
-- CLI con flags útiles (`--miles`, `--preview`, `--export_*`).  
-- **App interactiva** `app.py`.
+Admite **abonos extraordinarios**:
 
-**4) Código en Python (15%)**  
-- Arquitectura modular: `amort/rates.py` (tasas), `amort/schedule.py` (tabla/abonos), `amort/utils.py` (export), `cli.py`, `app.py`.  
-- Manejo de errores y validaciones.
+- `tipo="plazo"` → **mantiene la cuota** y **reduce el número de cuotas**.  
+- `tipo="cuota"` → **mantiene el plazo** y **recalcula la cuota** desde el periodo del abono.
 
-**5) Pruebas y README (15%)**  
-- `tests/test_core.py` cubre equivalencias de tasa, cierre de tabla y abonos (plazo/cuota).  
-- Este README documenta uso, fórmulas y supuestos.
+Incluye **exportación a CSV/Excel**, **anclaje a fin de mes** y **pruebas automáticas**.
 
 ---
 
-## 🛠️ Instalación
+## ✅ Cómo se alinea con la rúbrica
 
-> Recomendado: Python **3.11/3.12** (3.13 funciona si hay wheels de `pandas` disponibles).
+1. **Exactitud financiera (30%)**  
+   Conversión de tasas (nominal/efectiva, anticipada/vencida, capitalización, base 360/365); la tabla cierra con saldo final ≈ 0 (ajuste ≤ 0.1% del principal). Se imprime **tasa por periodo objetivo** y **EA equivalente**.
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate        # macOS / Linux
-# Windows: .venv\Scripts\activate
+2. **Funcionalidad: método y abonos (25%)**  
+   Método francés estable; abonos `plazo` (acorta) y `cuota` (recalcula) consistentes y reproducibles.
 
-python -m pip install -U pip setuptools wheel
-pip install -r requirements.txt
+3. **Entradas y uso (15%)**  
+   CLI clara: **monto**, **tasa** (valor, tipo, capitalización, vencimiento, base), **plazo** (por `--n_periodos` o `--duracion + --duracion_unidad`), **frecuencia de pago**, **fecha inicio**. Validaciones de cortesía y exportes CSV/XLSX.
+
+4. **Código en Python (15%)**  
+   Diseño modular y legible: `amort/rates.py` (tasas), `amort/schedule.py` (francés, abonos, fechas), `amort/utils.py` (export e helpers), `cli.py` (interfaz), `app.py` (modo interactivo).
+
+5. **Pruebas y README (15%)**  
+   Suite `pytest` con **17 pruebas** (conversión EA→mensual, efectiva mensual, nominal cap. mensual, anticipada→vencida, base 360/365, fin de mes desde 31/ene, tasa 0%, abonos `plazo`/`cuota`, cierre de tabla). Este README documenta uso, fórmulas y supuestos.
+
+---
+
+## 🧱 Estructura del repositorio
+
+```text
+ProyectoTablaAmortizacion/
+├── amort/
+│   ├── __init__.py
+│   ├── rates.py          # Conversión de tasas (RateSpec, _ppya, tasa_periodica_normalizada, ...)
+│   ├── schedule.py       # Método francés, fechas (fin de mes), abonos
+│   └── utils.py          # Export a CSV/Excel, helpers
+├── cli.py                # Interfaz de línea de comandos (uso principal)
+├── app.py                # Modo interactivo por consola
+├── tests/                # Pruebas con pytest
+│   ├── test_rates.py
+│   ├── test_schedule.py
+│   ├── test_cli_smoke.py
+│   └── test_core.py
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## 🚀 Uso rápido
+## ⚙️ Instalación
 
-### A) Modo interactivo (sin flags)
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
+> Requisito: **Python 3.9+**
+
+---
+
+## 🖥️ Uso
+
+### 1) CLI (recomendado)
+
+**Parámetros clave de la tasa (tasa de referencia que el usuario conoce):**
+- `--tasa_valor` : porcentaje (ej. `24.33`)
+- `--tasa_tipo`  : `nominal` | `efectiva`
+- `--tasa_cap`   : capitalización de esa tasa (`diaria|semanal|quincenal|mensual|bimestral|trimestral|semestral|anual`)
+- `--tasa_venc`  : `vencida` | `anticipada`
+- `--base_dias`  : `360` | `365` *(solo afecta si `tasa_cap=diaria`)*
+
+**Plazo:**
+- O **número de cuotas**: `--n_periodos N`
+- O **duración + unidad**: `--duracion X --duracion_unidad {dias,semanas,quincenas,meses,bimestres,trimestres,semestres,anios}`  
+  *(se convierte a `N` coherente con la **frecuencia de pago**)*
+
+**Frecuencia de pago (objetivo):**
+- `--frecuencia {diaria,semanal,quincenal,mensual,bimestral,trimestral,semestral,anual}`
+
+**Otros:**
+- `--fecha_inicio DD/MM/YYYY` *(opcional; activa fechas y fin de mes si inicia el 31)*  
+- `--abonos_json '[{"periodo":6,"monto":1000000,"tipo":"plazo"}]'` *(tipo ∈ {"plazo","cuota"})*  
+- `--export_csv salida.csv` | `--export_xlsx salida.xlsx`  
+- `--preview N` *(muestra N filas)*  
+- `--miles` *(formato amigable en consola; no afecta cálculos ni exportes)*
+
+### 2) Modo interactivo
 ```bash
 python app.py
 ```
 
-- Pide todo como formulario: **N cuotas** o **duración+unidad**, tasa (tipo/capitalización/vencimiento), **abonos**, etc.  
-- Muestra tabla completa o preview, **resumen** y permite exportar CSV/XLSX.
+---
 
-### B) CLI con flags
+## 🔁 Ejemplos reproducibles
 
-**Parámetros principales**
-
-- **Tasa**:  
-  `--tasa_valor` (porcentaje, p. ej. `24.33`) · `--tasa_tipo {nominal,efectiva}` ·  
-  `--tasa_cap {diaria,semanal,quincenal,mensual,bimestral,trimestral,semestral,anual}` ·  
-  `--tasa_venc {vencida,anticipada}` · `--base_dias {360,365}` (afecta **diaria**)
-
-- **Plazo**:  
-  `--n_periodos N` **o** `--duracion X --duracion_unidad {dias,semanas,quincenas,meses,bimestres,trimestres,semestres,anios}`  
-  (la duración se convierte a **N** según la **frecuencia de pago**)
-
-- **Frecuencia de pago**:  
-  `--frecuencia {diaria,semanal,quincenal,mensual,bimestral,trimestral,semestral,anual}`
-
-- **Fecha de inicio**:  
-  `--fecha_inicio DD/MM/AAAA` (opcional; genera columna **Fecha**)
-
-- **Abonos** (JSON):  
-  `--abonos_json '[{"periodo":6,"monto":200000,"tipo":"plazo"},{"periodo":12,"monto":150000,"tipo":"cuota"}]'`
-
-- **Salida/UX**:  
-  `--miles` (separador de miles) · `--preview N` (0 = todas) · `--export_csv archivo.csv` · `--export_xlsx archivo.xlsx`
-
-**Ejemplos**
-
+**1. EA 24.33% anual → pagos mensuales (N=24)**
 ```bash
-# 1) EA 24.33%, pagos mensuales, 24 cuotas (con miles y fechas)
-python cli.py --monto 7000000 --tasa_valor 24.33 --tasa_tipo efectiva --tasa_cap anual \
-  --tasa_venc vencida --frecuencia mensual --n_periodos 24 \
-  --fecha_inicio 01/01/2025 --miles
+python cli.py --monto 7000000 --tasa_valor 24.33 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia mensual --n_periodos 24   --fecha_inicio 01/01/2025 --miles
+```
 
-# 2) Efectiva mensual 1.74%, 24 meses (duración+unidad)
-python cli.py --monto 7000000 --tasa_valor 1.74 --tasa_tipo efectiva --tasa_cap mensual \
-  --tasa_venc vencida --frecuencia mensual --duracion 24 --duracion_unidad meses \
-  --fecha_inicio 15/10/2025 --miles
+**2. Efectiva 1.74% mensual (duración 24 meses)**
+```bash
+python cli.py --monto 7000000 --tasa_valor 1.74 --tasa_tipo efectiva --tasa_cap mensual   --tasa_venc vencida --frecuencia mensual   --duracion 24 --duracion_unidad meses   --fecha_inicio 15/10/2025 --miles
+```
 
-# 3) Nominal 24% cap. mensual (~2%/mes), 2 trimestres = 6 cuotas
-python cli.py --monto 7000000 --tasa_valor 24 --tasa_tipo nominal --tasa_cap mensual \
-  --tasa_venc vencida --frecuencia mensual --duracion 2 --duracion_unidad trimestres \
-  --fecha_inicio 01/01/2025 --miles
+**3. Nominal 24% cap. mensual (≈2%/mes), plazo 2 trimestres**
+```bash
+python cli.py --monto 7000000 --tasa_valor 24 --tasa_tipo nominal --tasa_cap mensual   --tasa_venc vencida --frecuencia mensual   --duracion 2 --duracion_unidad trimestres   --fecha_inicio 01/01/2025 --miles
+```
+
+**4. Efectiva 2% mensual ANTICIPADA (normalizada a vencida)**
+```bash
+python cli.py --monto 3000000 --tasa_valor 2 --tasa_tipo efectiva --tasa_cap mensual   --tasa_venc anticipada --frecuencia mensual --n_periodos 12   --fecha_inicio 01/02/2025 --miles
+```
+
+**5. Abono que reduce plazo (mantiene cuota)**
+```bash
+python cli.py --monto 5000000 --tasa_valor 24 --tasa_tipo nominal --tasa_cap mensual   --tasa_venc vencida --frecuencia mensual --n_periodos 24   --fecha_inicio 01/01/2025   --abonos_json '[{"periodo":6,"monto":1800000,"tipo":"plazo"}]'
+```
+
+**6. Abono que recalcula cuota (mantiene plazo)**
+```bash
+python cli.py --monto 7000000 --tasa_valor 24.33 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia mensual --n_periodos 24   --fecha_inicio 01/01/2025   --abonos_json '[{"periodo":6,"monto":1000000,"tipo":"cuota"}]'
+```
+
+**7. Fin de mes anclado (desde 31/01/2025)**
+```bash
+python cli.py --monto 1000000 --tasa_valor 18 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia mensual --n_periodos 6   --fecha_inicio 31/01/2025 --preview 6
+```
+
+**8. Diaria: base 360 vs 365 (EA=20%)**
+```bash
+# base 360
+python cli.py --monto 1000000 --tasa_valor 20 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia diaria --n_periodos 30 --base_dias 360
+
+# base 365
+python cli.py --monto 1000000 --tasa_valor 20 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia diaria --n_periodos 30 --base_dias 365
+```
+
+**9. Tasa 0% (cuotas iguales, sin intereses)**
+```bash
+python cli.py --monto 900000 --tasa_valor 0 --tasa_tipo efectiva --tasa_cap anual   --tasa_venc vencida --frecuencia mensual --n_periodos 9   --fecha_inicio 01/10/2025 --miles
 ```
 
 ---
 
-## 🧩 Estructura
+## 🧮 Fórmulas clave (resumen)
 
-```text
-amort/
-  rates.py       # Conversión de tasas y normalización a vencida (periodo de pago)
-  schedule.py    # Tabla método francés + abonos (reducir plazo o cuota) — SOLO por n_periodos
-  utils.py       # export_csv, export_excel
-cli.py           # CLI completa (flags)
-app.py           # Modo interactivo (formulario en consola)
-tests/
-  test_core.py   # Pruebas base (equivalencias, cierre, abonos)
-requirements.txt
-```
+Sea `ppya(periodo)` el número de pagos por año:  
+`diaria=base_dias`, `semanal=52`, `quincenal=24`, `mensual=12`, `bimestral=6`, `trimestral=4`, `semestral=2`, `anual=1`.
+
+**1) Nominal anual j con capitalización p_ref → periódica ref (vencida)**  
+`i_ref = (j/100) / p_ref`  
+Si venía **anticipada**: `i_ref = i_ref / (1 - i_ref)`.
+
+**2) Efectiva periódica ref (valor en %) → i_ref (vencida)**  
+`i_ref = valor/100`  
+Si **anticipada**: `i_ref = i_ref / (1 - i_ref)`.
+
+**3) Periódica ref → Efectiva Anual (EA)**  
+`i_EA = (1 + i_ref)^{p_ref} - 1`.
+
+**4) EA → Periódica objetivo (frecuencia de pago p_obj, vencida)**  
+`i_obj = (1 + i_EA)^{1/p_obj} - 1`.
+
+**Método francés (cuota vencida)**  
+`A = P · [ i (1+i)^n / ((1+i)^n − 1) ]`  *(si `i=0` entonces `A = P/n`)*  
+`Interés_t = Saldo_{t-1} · i`  
+`Amortización_t = A − Interés_t`  
+*Ajuste final:* se corrige residuo de redondeo en la última fila.
+
+**Abonos**  
+- `plazo`: descuenta del saldo, **mantiene A**, **reduce N**.  
+- `cuota`: descuenta del saldo, **recalcula A** para los periodos restantes (mismo `N` total).
 
 ---
 
-## 🧮 Fórmulas clave
+## 📅 Fechas y fin de mes
 
-```text
-# Nominal j con m capitalizaciones/año → Efectiva Anual
-i_EA = (1 + j/m)^m - 1
+- Si `--fecha_inicio` es **31**, los pagos mensuales se **anclan a fin de mes** (28/29/30/31 según corresponda).  
+- Otras frecuencias suman su intervalo natural (7, 15 días, etc.).  
+- Sin fecha, la columna `Fecha` puede ser `None`.
 
-# Efectiva Anual (i_EA) → Efectiva por periodo (p pagos/año)
-i_p  = (1 + i_EA)^(1/p) - 1
+---
 
-# Efectiva de ref. (i_ref, p_ref) → periodo objetivo p
-i_p  = (1 + i_ref)^(p_ref/p) - 1
+## 🔒 Validaciones y supuestos
 
-# Anticipada ↔ Vencida (mismo periodo)
-i_v = i_a / (1 - i_a)
-i_a = i_v / (1 + i_v)
-
-# Cuota – método francés (vencida)
-C = P * [ i * (1+i)^n / ((1+i)^n - 1) ]
-
-# Nota: todas las tasas se normalizan a "vencida por el periodo de pago" antes del cálculo.
-```
+- `monto > 0`, `tasa_valor ≥ 0`, `n_periodos ≥ 1`.  
+- Abonos con `periodo ≥ 1`, `monto ≥ 0`, `tipo ∈ {"plazo","cuota"}`.  
+- La **base 360/365** solo afecta **tasa diaria**.  
+- Los exportes no alteran el cálculo (solo salida de datos).
 
 ---
 
 ## 🧪 Pruebas
 
 ```bash
-# instalar pytest (si no lo tienes)
-pip install pytest
-
-# ejecutar
 pytest -q
 ```
-
-**Cubre:** equivalencias de tasas, cierre de tabla (saldo ~ 0), abonos que reducen **plazo** y que recalculan **cuota**.
-
----
-
-## 📌 Supuestos y decisiones
-
-- El **plazo** se trabaja por **N cuotas**. Alternativamente, se acepta **duración+unidad** y se convierte a N según la **frecuencia de pago**.  
-- **Fechas**: para frecuencias mensuales/bimestrales/… se avanza por meses (si el día no existe, se ajusta al fin de mes). Para diaria/semanal/quincenal, avance por días (base 360 por defecto; 365 opcional).  
-- **Redondeo**: impresión a 2 decimales; si |saldo final| < 0.01 se presenta como 0.00.  
-- Validación de **amortización positiva**; en caso contrario se notifica al usuario.
+Resultado esperado del repo: **17 passed**.  
+Cobertura: conversiones (incluye anticipada→vencida), base 360/365, fin de mes, tasa 0%, abonos `plazo` y `cuota`, cierre a saldo ≈ 0.
 
 ---
 
-## 🧾 Licencia
+## 📝 Licencia / uso
 
-Uso académico. Autores: **Valentina Rendón Claro** y **Juan José Molina Zapata**.
+Uso académico para el **Trabajo Final de Ingeniería Financiera (UPB, 2025-2)**.

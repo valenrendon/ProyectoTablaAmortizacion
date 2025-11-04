@@ -1,10 +1,12 @@
-# cli.py
 from __future__ import annotations
 import argparse, sys, json
+import pandas as pd
+
 from amort.rates import RateSpec, _ppya, tasa_periodica_normalizada
 from amort.schedule import generar_tabla_frances, Abono
 
 UNIDADES = ["dias","semanas","quincenas","meses","bimestres","trimestres","semestres","anios"]
+PERIODOS = ["diaria","semanal","quincenal","mensual","bimestral","trimestral","semestral","anual"]
 
 def build_parser():
     p = argparse.ArgumentParser(description="Tabla de Amortización (método francés)")
@@ -12,17 +14,17 @@ def build_parser():
     p.add_argument("--monto", type=float, required=True)
     p.add_argument("--tasa_valor", type=float, required=True, help="Porcentaje (ej. 24.33)")
     p.add_argument("--tasa_tipo", choices=["nominal","efectiva"], required=True)
-    p.add_argument("--tasa_cap", choices=["diaria","semanal","quincenal","mensual","bimestral","trimestral","semestral","anual"], required=True)
+    p.add_argument("--tasa_cap", choices=PERIODOS, required=True)
     p.add_argument("--tasa_venc", choices=["vencida","anticipada"], default="vencida")
     p.add_argument("--base_dias", type=int, choices=[360,365], default=360)
 
-    # Plazo SOLO como N cuotas o duración+unidad
+    # Plazo como N cuotas o duración+unidad
     p.add_argument("--n_periodos", type=int, default=None, help="Número de cuotas (N)")
     p.add_argument("--duracion", type=float, default=None, help="Cantidad del plazo (ej. 6)")
     p.add_argument("--duracion_unidad", choices=UNIDADES, default=None, help="Unidad (meses, trimestres, etc.)")
 
     # Pago y fechas
-    p.add_argument("--frecuencia", choices=["diaria","semanal","quincenal","mensual","bimestral","trimestral","semestral","anual"], required=True)
+    p.add_argument("--frecuencia", choices=PERIODOS, required=True)
     p.add_argument("--fecha_inicio", type=str, help="DD/MM/YYYY", default=None)
 
     # Extras
@@ -49,24 +51,34 @@ def n_from_duracion(freq_pago: str, base_dias: int, duracion: float, unidad: str
     n = int(round((duracion / per_year_unidad) * per_year_pago))
     return max(1, n)
 
-def format_miles(df, use_miles: bool):
+def format_miles(df: pd.DataFrame, use_miles: bool) -> pd.DataFrame:
     if not use_miles:
         return df
     out = df.copy()
     for c in ["Cuota","Interés","Amortización","AbonoExtra","Saldo"]:
-        out[c] = out[c].map(lambda x: f"{x:,.2f}")
+        if c in out.columns:
+            out[c] = out[c].map(lambda x: f"{float(x):,.2f}")
     return out
 
 def main(argv=None):
     argv = argv or sys.argv[1:]
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
 
-    # Resolver N periodos
+    # --- Validaciones ---
+    if args.monto <= 0:
+        parser.error("monto debe ser > 0")
+    if args.tasa_valor < 0:
+        parser.error("tasa_valor no puede ser negativa")
+
+    # Resolver n_periodos (N) o duración+unidad
     if args.n_periodos is not None:
         n_periodos = args.n_periodos
+        if n_periodos <= 0:
+            parser.error("n_periodos debe ser > 0")
     else:
         if args.duracion is None or args.duracion_unidad is None:
-            raise SystemExit("Debes proporcionar --n_periodos O (--duracion y --duracion_unidad).")
+            parser.error("Debes indicar --n_periodos o (--duracion y --duracion_unidad).")
         n_periodos = n_from_duracion(args.frecuencia, args.base_dias, args.duracion, args.duracion_unidad)
 
     # Especificación de tasa
@@ -89,20 +101,25 @@ def main(argv=None):
     abonos = []
     if args.abonos_json:
         try:
-            for a in json.loads(args.abonos_json):
-                abonos.append(Abono(periodo=int(a["periodo"]), monto=float(a["monto"]), tipo=a.get("tipo","plazo")))
+            raw = json.loads(args.abonos_json)
+            for a in raw:
+                tipo = a.get("tipo","plazo")
+                if tipo not in ("plazo","cuota"):
+                    parser.error("Cada abono debe tener tipo 'plazo' o 'cuota'.")
+                abonos.append(Abono(periodo=int(a["periodo"]), monto=float(a["monto"]), tipo=tipo))
         except Exception as e:
             raise SystemExit(f"--abonos_json inválido: {e}")
 
-    # Tabla
-    df = generar_tabla_frances(
-        principal=args.monto,
-        tasa=rs,
-        freq_pago=args.frecuencia,
+    # Tabla (asegurar DataFrame)
+    tabla = generar_tabla_frances(
+        monto=args.monto,
+        i_periodo=i_p,
         n_periodos=n_periodos,
+        frecuencia=args.frecuencia,
         fecha_inicio=args.fecha_inicio,
         abonos=abonos,
     )
+    df = tabla if isinstance(tabla, pd.DataFrame) else pd.DataFrame(tabla)
 
     # Impresión
     out = format_miles(df, args.miles)
@@ -111,10 +128,10 @@ def main(argv=None):
     else:
         print(out.to_string(index=False, max_rows=None))
 
-    # Resumen
-    tot_interes = float(df["Interés"].sum())
-    tot_abonos  = float(df["AbonoExtra"].sum())
-    tot_cuotas  = float(df["Cuota"].sum())
+    # Resumen (con df numérico, no con 'out' formateado)
+    tot_interes = float(pd.to_numeric(df["Interés"]).sum())
+    tot_abonos  = float(pd.to_numeric(df["AbonoExtra"]).sum())
+    tot_cuotas  = float(pd.to_numeric(df["Cuota"]).sum())
     tot_pagado  = tot_cuotas + tot_abonos
     if args.miles:
         print(f"\nResumen → Intereses: {tot_interes:,.2f} | Abonos: {tot_abonos:,.2f} | Total pagado: {tot_pagado:,.2f}")
